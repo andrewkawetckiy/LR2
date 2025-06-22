@@ -4,53 +4,52 @@
   <meta charset="utf-8">
   <title>AR Сатурн – Three.js + MindAR (UMD)</title>
   <style>
-    body, html { margin:0; overflow:hidden; }
-    #ar-container { position:relative; width:100vw; height:100vh; }
-    canvas { position:absolute; top:0; left:0; }
+    body, html { margin: 0; overflow: hidden; }
+    #ar-container { position: relative; width: 100vw; height: 100vh; }
+    canvas { position: absolute; top: 0; left: 0; }
   </style>
 
-  <!-- 1) UMD-зборка Three.js -->
+  <!-- 1. UMD Three.js (Warning про депрекейт нічого не зламає) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
 
-  <!-- 2) UMD-зборка MindAR для Three.js -->
+  <!-- 2. UMD MindAR for Three.js (обов'язково .umd.js!) -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-three.prod.umd.js"></script>
 </head>
 <body>
 
+  <!-- 3. Контейнер для відео + WebGL -->
   <div id="ar-container"></div>
 
   <script>
-    // 3) з UMD-версії приходить глобальний обʼєкт MindAR
-    //    Простежте, щоб підключили саме mindar-image-three.prod.umd.js
-    const { MindARThree } = MindAR.IMAGE;
+    // 4. Беремо конструктор із глобального об’єкта
+    const { MindARThree } = window.MINDAR.IMAGE;
 
     async function startAR() {
-      // 4) Ініціалізація MindAR + Three.js сцени
+      // 5. Ініціалізація MindAR + Three.js
       const mindarThree = new MindARThree({
         container: document.querySelector('#ar-container'),
-        imageTargetSrc: 'assets/targets.mind',
+        imageTargetSrc: 'assets/targets.mind',  // ваш таргет .mind
         uiScanning: true,
         uiLoading: 'Завантажуємо…'
       });
       const { renderer, scene, camera } = mindarThree;
 
-      // 5) Додаємо світло
+      // 6. Світло
       scene.add(new THREE.AmbientLight(0xffffff, 0.2));
       const point = new THREE.PointLight(0xffffff, 1, 50);
       point.castShadow = true;
       scene.add(point);
 
-      // 6) В’язка контенту до таргета #0
+      // 7. Anchor → сюди «прив’язується» сатурн
       const anchor = mindarThree.addAnchor(0);
       const saturnGroup = new THREE.Group();
       anchor.group.add(saturnGroup);
 
-      // 7) Завантажуємо текстури
+      // 8. Текстури і меші
       const loader = new THREE.TextureLoader();
       const texSat  = loader.load('assets/textures/saturn.jpg');
       const texRing = loader.load('assets/textures/rings.jpg');
 
-      // 8) Створюємо сферу Сатурна
       const meshSat = new THREE.Mesh(
         new THREE.SphereGeometry(2, 64, 64),
         new THREE.MeshStandardMaterial({
@@ -60,7 +59,6 @@
       meshSat.castShadow = true;
       saturnGroup.add(meshSat);
 
-      // 9) Створюємо кільце
       const meshRing = new THREE.Mesh(
         new THREE.RingGeometry(2.5, 4.5, 256),
         new THREE.MeshStandardMaterial({
@@ -74,14 +72,14 @@
       meshRing.castShadow = true;
       saturnGroup.add(meshRing);
 
-      // 10) Підлаштування під вікно
+      // 9. Resize
       window.addEventListener('resize', () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
-        camera.aspect = window.innerWidth/window.innerHeight;
+        camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
       });
 
-      // 11) Запуск AR та анімація
+      // 10. Старт AR та анімація
       await mindarThree.start();
       renderer.setAnimationLoop(() => {
         saturnGroup.rotation.y += 0.005;
