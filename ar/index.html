@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8" />
-  <title>AR Сатурн — Без конфліктів</title>
+  <title>AR Сатурн — З логуванням</title>
   <style>
     html, body {
       margin: 0;
@@ -25,94 +25,111 @@
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script> 
 
   <script>
+    console.log("🔄 Старт додатка");
+
     window.addEventListener("load", () => {
+      console.log("🟢 Вікно завантажилось");
+      
       const waitUntilReady = () => {
         if (window.MINDAR?.IMAGE?.MindARThree) {
-          console.log("MindARThree is ready");
+          console.log("✅ MindARThree доступний");
           startAR();
         } else {
           console.warn("⏳ Чекаємо на MindAR...");
           setTimeout(waitUntilReady, 100);
         }
       };
+
       waitUntilReady();
-
-      function startAR() {
-        const { MindARThree } = window.MINDAR.IMAGE;
-
-        const mindarThree = new MindARThree({
-          container: document.querySelector("#ar-container"),
-          imageTargetSrc: "assets/targets/targets.mind",
-          uiScanning: true,
-          uiLoading: "yes"
-        });
-
-        const { renderer, scene, camera } = mindarThree;
-
-        const anchor = mindarThree.addAnchor(0);
-
-        // 💡 Освітлення
-        const ambient = new mindarThree.THREE.AmbientLight(0xffffff, 0.6);
-        const directional = new mindarThree.THREE.DirectionalLight(0xffffff, 0.8);
-        directional.position.set(0, 1, 1);
-        scene.add(ambient, directional);
-
-        // 📦 Текстури
-        const loader = new mindarThree.THREE.TextureLoader();
-        Promise.all([
-          loader.loadAsync("assets/textures/saturn.jpg"),
-          loader.loadAsync("assets/textures/rings.png")
-        ]).then(([saturnTex, ringsTex]) => {
-
-          const saturn = new mindarThree.THREE.Mesh(
-            new mindarThree.THREE.SphereGeometry(0.5, 64, 64),
-            new mindarThree.THREE.MeshStandardMaterial({
-              map: saturnTex,
-              metalness: 0.2,
-              roughness: 0.9
-            })
-          );
-
-          const rings = new mindarThree.THREE.Mesh(
-            new mindarThree.THREE.RingGeometry(0.65, 1.15, 128),
-            new mindarThree.THREE.MeshStandardMaterial({
-              map: ringsTex,
-              side: mindarThree.THREE.DoubleSide,
-              transparent: true,
-              alphaTest: 0.3
-            })
-          );
-          rings.rotation.x = -Math.PI / 2;
-
-          const group = new mindarThree.THREE.Group();
-          group.add(saturn, rings);
-          group.rotation.set(
-            mindarThree.THREE.MathUtils.degToRad(-27),
-            mindarThree.THREE.MathUtils.degToRad(120),
-            0
-          );
-
-          anchor.group.add(group);
-
-          // ▶️ Старт AR
-          mindarThree.start().then(() => {
-            console.log("✅ AR запущено");
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setAnimationLoop(() => {
-              group.rotation.y += 0.005;
-              renderer.render(scene, camera);
-            });
-          });
-        }).catch((err) => {
-          console.error("❌ Помилка текстур:", err);
-        });
-
-        // 📱 Адаптація під розмір екрану
-        window.addEventListener("resize", () => {
-          renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-      }
     });
+
+    function startAR() {
+      console.log("🚀 Запуск AR...");
+
+      const { MindARThree } = window.MINDAR.IMAGE;
+
+      const mindarThree = new MindARThree({
+        container: document.querySelector("#ar-container"),
+        imageTargetSrc: "assets/targets/targets.mind",
+        uiScanning: true,
+        uiLoading: "yes"
+      });
+
+      const { renderer, scene, camera } = mindarThree;
+
+      const anchor = mindarThree.addAnchor(0);
+      console.log("📍 Анкер додано");
+
+      // 💡 Освітлення
+      const ambient = new mindarThree.THREE.AmbientLight(0xffffff, 0.6);
+      const directional = new mindarThree.THREE.DirectionalLight(0xffffff, 0.8);
+      directional.position.set(0, 1, 1);
+      scene.add(ambient, directional);
+      console.log("💡 Освітлення додано");
+
+      // 📦 Текстури
+      const loader = new mindarThree.THREE.TextureLoader();
+      console.log("🖼️ Починаємо завантаження текстур...");
+
+      Promise.all([
+        loader.loadAsync("assets/textures/saturn.jpg"),
+        loader.loadAsync("assets/textures/rings.png")
+      ]).then(([saturnTex, ringsTex]) => {
+        console.log("✅ Текстури успішно завантажені");
+
+        const saturn = new mindarThree.THREE.Mesh(
+          new mindarThree.THREE.SphereGeometry(0.5, 64, 64),
+          new mindarThree.THREE.MeshStandardMaterial({
+            map: saturnTex,
+            metalness: 0.2,
+            roughness: 0.9
+          })
+        );
+
+        const rings = new mindarThree.THREE.Mesh(
+          new mindarThree.THREE.RingGeometry(0.65, 1.15, 128),
+          new mindarThree.THREE.MeshStandardMaterial({
+            map: ringsTex,
+            side: mindarThree.THREE.DoubleSide,
+            transparent: true,
+            alphaTest: 0.3
+          })
+        );
+        rings.rotation.x = -Math.PI / 2;
+
+        const group = new mindarThree.THREE.Group();
+        group.add(saturn, rings);
+        group.rotation.set(
+          mindarThree.THREE.MathUtils.degToRad(-27),
+          mindarThree.THREE.MathUtils.degToRad(120),
+          0
+        );
+
+        anchor.group.add(group);
+        console.log("🪐 Об’єкт Сатурна додано до анкера");
+
+        // ▶️ Старт AR
+        console.log("▶️ Готуємося запустити AR...");
+        mindarThree.start().then(() => {
+          console.log("✅ AR запущено!");
+          renderer.setSize(window.innerWidth, window.innerHeight);
+          renderer.setAnimationLoop(() => {
+            group.rotation.y += 0.005;
+            renderer.render(scene, camera);
+          });
+        }).catch(err => {
+          console.error("❌ Помилка запуску AR:", err);
+        });
+      }).catch((err) => {
+        console.error("❌ Помилка завантаження текстур:", err);
+      });
+
+      // 📱 Адаптація під розмір екрану
+      window.addEventListener("resize", () => {
+        console.log("📐 Розмір вікна змінився");
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
   </script>
 </body>
 </html>
