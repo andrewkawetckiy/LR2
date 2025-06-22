@@ -34,7 +34,7 @@
     <button id="start-ar">Start AR</button>
   </div>
 
-  <!-- MindAR, включає свою версію THREE -->
+  <!-- MindAR вже містить свою версію Three.js -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script>
 
   <script>
@@ -46,7 +46,6 @@
           setTimeout(waitForMindAR, 50);
         }
       };
-
       waitForMindAR();
 
       function runApp() {
@@ -72,12 +71,12 @@
           })()
         );
 
-        // Завантаження текстур
+        // Текстури
         const loader = new THREE.TextureLoader();
         const saturnTex = loader.load("assets/textures/saturn.jpg");
         const ringTex = loader.load("assets/textures/rings.jpg");
 
-        // Сатурн
+        // Меші
         const saturn = new THREE.Mesh(
           new THREE.SphereGeometry(2, 64, 64),
           new THREE.MeshStandardMaterial({ map: saturnTex, metalness: 0.2, roughness: 0.9 })
@@ -105,13 +104,21 @@
         anchor.group.add(saturnGroup);
 
         document.getElementById("start-ar").addEventListener("click", async () => {
+          console.log("🔵 Кнопка натиснута, запускаємо AR...");
           document.getElementById("start-ar").style.display = "none";
-          await mindarThree.start();
-          renderer.setSize(window.innerWidth, window.innerHeight);
-          renderer.setAnimationLoop(() => {
-            saturnGroup.rotation.y += 0.005;
-            renderer.render(scene, camera);
-          });
+
+          try {
+            await mindarThree.start();
+            console.log("✅ mindarThree.start() успішно виконано");
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setAnimationLoop(() => {
+              saturnGroup.rotation.y += 0.005;
+              renderer.render(scene, camera);
+            });
+          } catch (err) {
+            console.error("❌ Помилка при запуску MindAR:", err);
+          }
         });
 
         window.addEventListener("resize", () => {
