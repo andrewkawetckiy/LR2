@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8" />
-  <title>AR Сатурн — Діагностична версія</title>
+  <title>AR Сатурн — Без конфліктів</title>
   <style>
     html, body {
       margin: 0;
@@ -55,6 +55,11 @@
         uiLoading: "yes"
       });
 
+      // Обробка помилок завантаження файлів
+      mindarThree.onImageTargetsLoadError = (err) => {
+        console.error("❌ Помилка завантаження targets.mind:", err);
+      };
+
       const { renderer, scene, camera } = mindarThree;
 
       const anchor = mindarThree.addAnchor(0);
@@ -62,16 +67,25 @@
 
       // 💡 Чекаємо, поки THREE буде доступний
       const checkTHREE = (callback) => {
-        if (mindarThree.THREE && mindarThree.THREE.AmbientLight) {
-          console.log("✅ THREE доступний");
-          callback();
-        } else {
-          console.warn("⏳ Очікуємо THREE...");
-          setTimeout(() => checkTHREE(callback), 200);
-        }
+        let attempts = 0;
+        const tryCheck = () => {
+          if (mindarThree.THREE && mindarThree.THREE.AmbientLight) {
+            console.log("✅ THREE доступний після", attempts, "спроб");
+            callback();
+          } else if (attempts < 30) {
+            attempts++;
+            console.warn("⏳ Очікуємо THREE... спроба", attempts);
+            setTimeout(tryCheck, 200);
+          } else {
+            console.error("❌ THREE не став доступним через 6 секунд");
+          }
+        };
+        tryCheck();
       };
 
       checkTHREE(() => {
+        console.log("💡 Створюємо освітлення");
+
         const ambient = new mindarThree.THREE.AmbientLight(0xffffff, 0.6);
         const directional = new mindarThree.THREE.DirectionalLight(0xffffff, 0.8);
         directional.position.set(0, 1, 1);
@@ -116,7 +130,7 @@
           );
 
           anchor.group.add(group);
-          console.log("🪐 Сатурн додано до сцени");
+          console.log("🪐 Об’єкт Сатурна додано до анкера");
 
           console.log("▶️ Готуємося запустити AR...");
           mindarThree.start().then(() => {
