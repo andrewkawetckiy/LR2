@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>AR Сатурн на MindAR + Three.js</title>
+  <style>
+    body, html { margin: 0; overflow: hidden; }
+    #ar-container { position: relative; width: 100vw; height: 100vh; }
+    canvas { position: absolute; top: 0; left: 0; }
+  </style>
+</head>
+<body>
+
+  <!-- контейнер для камери та канвасу -->
+  <div id="ar-container"></div>
+
+  <!-- Three.js та MindAR бібліотеки -->
+  <script type="module">
+    import * as THREE       from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
+    import { MindARThree }  from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-three.prod.js';
+
+    const start = async () => {
+      // 1. Ініціалізуємо MindAR
+      //    imageTargetSrc — файл, згенерований MindAR-cli (наприклад, з фото плаката)
+      const mindar = new MindARThree({
+        container: document.querySelector('#ar-container'),
+        imageTargetSrc: 'assets/targets.mind',  
+        uiScanning: true,      // показувати індикатор сканування
+        uiLoading: 'Завантажуємо…',
+      });
+      const { renderer, scene, camera } = mindar;
+
+      // 2. Додаємо світло
+      const ambient = new THREE.AmbientLight(0xffffff, 0.2);
+      scene.add(ambient);
+      const point = new THREE.PointLight(0xffffff, 1, 50);
+      point.castShadow = true;
+      scene.add(point);
+
+      // 3. Група для Сатурна, що «пристромиться» до таргета
+      const anchor = mindar.addAnchor(0);  
+      const saturnGroup = new THREE.Group();
+      saturnGroup.position.set(0, 0, 0);
+      anchor.group.add(saturnGroup);
+
+      // 4. Завантажуємо текстури
+      const loader = new THREE.TextureLoader();
+      const satTex   = loader.load('assets/textures/saturn.jpg');
+      const ringsTex = loader.load('assets/textures/rings.jpg');
+
+      // 5. Створюємо сферу Сатурна
+      const satMat = new THREE.MeshStandardMaterial({
+        map: satTex, metalness: 0.2, roughness: 0.9
+      });
+      const satGeo = new THREE.SphereGeometry(2, 64, 64);
+      const satMesh = new THREE.Mesh(satGeo, satMat);
+      satMesh.castShadow = true;
+      saturnGroup.add(satMesh);
+
+      // 6. Створюємо кільце
+      const ringMat = new THREE.MeshStandardMaterial({
+        map: ringsTex, side: THREE.DoubleSide,
+        transparent: true, alphaTest: 0.5
+      });
+      const ringGeo = new THREE.RingGeometry(2.5, 4.5, 256);
+      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      ringMesh.rotation.x = -Math.PI/2;
+      ringMesh.castShadow = true;
+      saturnGroup.add(ringMesh);
+
+      // 7. Обробка вікна
+      window.addEventListener('resize', () => {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.aspect = window.innerWidth/window.innerHeight;
+        camera.updateProjectionMatrix();
+      });
+
+      // 8. Запуск AR та анімація
+      await mindar.start();
+      renderer.setAnimationLoop(() => {
+        // нехай Сатурн обертається
+        saturnGroup.rotation.y += 0.005;
+        renderer.render(scene, camera);
+      });
+    };
+
+    start();
+  </script>
+
+</body>
+</html>
