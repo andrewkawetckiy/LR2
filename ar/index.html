@@ -6,6 +6,7 @@
   <style>
     html, body {
       margin: 0;
+      padding: 0;
       height: 100%;
       overflow: hidden;
       background: black;
@@ -20,23 +21,23 @@
 <body>
   <div id="ar-container"></div>
 
-  <!-- Стабільна версія з CDN, яка на 100% підключає window.MINDAR і window.THREE -->
-  <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@v1.1.5/dist/mindar-image-three.prod.js"></script>
+  <!-- ПРАВИЛЬНЕ підключення: окремо ядро і підтримка Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script>
 
   <script>
     window.addEventListener("load", () => {
-      console.log("✅ Сторінка завантажена");
-
       const tryStart = () => {
         const THREE = window.THREE;
         const MINDAR = window.MINDAR?.IMAGE;
 
         if (!THREE || !MINDAR?.MindARThree) {
           console.warn("⏳ Очікуємо появу window.THREE і window.MINDAR...");
-          return setTimeout(tryStart, 100);
+          setTimeout(tryStart, 100);
+          return;
         }
 
-        console.log("🚀 Стартуємо AR-сцену");
+        console.log("✅ MindAR і THREE.js готові, стартуємо");
 
         const mindarThree = new MINDAR.MindARThree({
           container: document.querySelector("#ar-container"),
@@ -63,8 +64,7 @@
         Promise.all([
           loader.loadAsync("assets/textures/saturn.jpg"),
           loader.loadAsync("assets/textures/rings.jpg")
-        ])
-        .then(([saturnTex, ringsTex]) => {
+        ]).then(([saturnTex, ringsTex]) => {
           const saturn = new THREE.Mesh(
             new THREE.SphereGeometry(0.5, 64, 64),
             new THREE.MeshStandardMaterial({ map: saturnTex, metalness: 0.2, roughness: 0.9 })
@@ -99,8 +99,9 @@
               renderer.render(scene, camera);
             });
           });
-        })
-        .catch(err => console.error("❌ Помилка текстур:", err));
+        }).catch((err) => {
+          console.error("❌ Помилка завантаження текстур:", err);
+        });
       };
 
       tryStart();
