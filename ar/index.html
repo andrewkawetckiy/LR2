@@ -1,124 +1,64 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>AR Сатурн на Three.js з MindAR</title>
+  <title>MindAR Test</title>
   <style>
-    body { margin: 0; overflow: hidden; }
+    body { margin: 0; overflow: hidden; background: red; }
     canvas { display: block; width: 100vw; height: 100vh; }
+    #start-btn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 20px 40px;
+      font-size: 18px;
+    }
   </style>
 </head>
 <body>
 
-<!-- Load MindAR first -->
-<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.3.0/dist/mindar-three.prod.js"></script> 
+<button id="start-btn">Start AR</button>
 
-<!-- Then load your module code -->
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.3.0/dist/mindar-three.prod.js"></script> 
 <script type="module">
 
   import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js'; 
 
-  let scene, camera, renderer;
-  let saturnGroup;
+  const startBtn = document.getElementById('start-btn');
 
-  // Safety check to wait for MINDAR to be available
-  function waitForMindAR() {
-    return new Promise((resolve) => {
-      const interval = setInterval(() => {
-        if (window.MINDAR?.IMAGE?.MindARThree) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 100);
-    });
-  }
+  startBtn.addEventListener('click', async () => {
+    startBtn.style.display = 'none';
 
-  async function init() {
-    // Wait for library to fully load
-    await waitForMindAR();
-
-    // Initialize AR viewer
-    const mindArViewer = new window.MINDAR.IMAGE.MindARThree({
+    const viewer = new window.MINDAR.IMAGE.MindARThree({
       container: document.body,
-      imageTargetSrc: 'assets/targets/targets.mind',
-      uiScanning: false,
+      imageTargetSrc: 'https://cdn.jsdelivr.net/npm/mind-ar@1.3.0/examples/image-tracking/assets/band-example/band-marker.mind', 
     });
 
-    ({ scene, camera, renderer } = mindArViewer);
+    const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+    const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+    const cube = new THREE.Mesh(geometry, material);
 
-    // Lighting
+    const anchor = viewer.addAnchor(0);
+    anchor.group.add(cube);
+
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
+    viewer.scene.add(ambientLight);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
     directionalLight.position.set(0, 1, 1);
-    scene.add(directionalLight);
+    viewer.scene.add(directionalLight);
 
-    // Saturn setup
-    saturnGroup = new THREE.Group();
+    await viewer.start();
 
-    const loader = new THREE.TextureLoader();
-
-    // Saturn texture
-    const satTex = loader.load('assets/textures/saturn.jpg');
-    const satMat = new THREE.MeshStandardMaterial({ map: satTex, metalness: 0.2, roughness: 0.9 });
-    const satGeo = new THREE.SphereGeometry(2, 64, 64);
-    const satMesh = new THREE.Mesh(satGeo, satMat);
-    satMesh.castShadow = true;
-    satMesh.receiveShadow = true;
-
-    // Ring texture
-    const ringTex = loader.load('assets/textures/rings.jpg');
-    const ringMat = new THREE.MeshStandardMaterial({
-      map: ringTex,
-      side: THREE.DoubleSide,
-      transparent: true,
-      alphaTest: 0.5
-    });
-    const ringGeo = new THREE.RingGeometry(2.5, 4.5, 256);
-    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-    ringMesh.rotation.x = -Math.PI / 2;
-
-    // Add to group
-    saturnGroup.add(satMesh);
-    saturnGroup.add(ringMesh);
-    saturnGroup.rotation.set(
-      THREE.MathUtils.degToRad(-27),
-      THREE.MathUtils.degToRad(120),
-      0
-    );
-
-    // Attach to anchor
-    const anchor = mindArViewer.addAnchor(0);
-    anchor.group.add(saturnGroup);
-
-    // Start AR session
-    await mindArViewer.start();
-
-    // Handle resize
-    window.addEventListener('resize', () => {
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-  }
-
-  function animate() {
-    requestAnimationFrame(animate);
-
-    if (saturnGroup) {
-      saturnGroup.rotation.y += 0.005;
-    }
-
-    if (renderer && scene && camera) {
-      renderer.render(scene, camera);
-    }
-  }
-
-  // Run in sequence
-  init().then(() => {
+    const animate = () => {
+      requestAnimationFrame(animate);
+      cube.rotation.y += 0.01;
+      viewer.renderer.render(viewer.scene, viewer.camera);
+    };
     animate();
   });
 
 </script>
-
 </body>
 </html>
