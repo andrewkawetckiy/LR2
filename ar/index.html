@@ -25,77 +25,93 @@
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script>
 
   <script>
-    window.addEventListener("load", async () => {
-      const { MindARThree } = window.MINDAR.IMAGE;
+    window.addEventListener("load", () => {
+      const waitForReady = () => {
+        if (window.MINDAR?.IMAGE?.MindARThree && window.THREE) {
+          runApp();
+        } else {
+          setTimeout(waitForReady, 50);
+        }
+      };
+      waitForReady();
 
-      const mindarThree = new MindARThree({
-        container: document.querySelector("#ar-container"),
-        imageTargetSrc: "assets/targets/targets.mind",
-        uiScanning: true,
-        uiLoading: "yes"
-      });
+      function runApp() {
+        const THREE = window.THREE;
+        const { MindARThree } = window.MINDAR.IMAGE;
 
-      const { renderer, scene, camera, THREE } = mindarThree;
+        const mindarThree = new MindARThree({
+          container: document.querySelector("#ar-container"),
+          imageTargetSrc: "assets/targets/targets.mind",
+          uiScanning: true,
+          uiLoading: "yes"
+        });
 
-      const anchor = mindarThree.addAnchor(0);
+        const { renderer, scene, camera } = mindarThree;
+        const anchor = mindarThree.addAnchor(0);
 
-      // Освітлення
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-      directionalLight.position.set(0, 1, 1);
-      scene.add(ambientLight, directionalLight);
+        // Освітлення
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(0, 1, 1);
+        scene.add(ambientLight, directionalLight);
 
-      // Завантаження текстур
-      const textureLoader = new THREE.TextureLoader();
-      const saturnTexture = await textureLoader.loadAsync("assets/textures/saturn.jpg");
-      const ringsTexture = await textureLoader.loadAsync("assets/textures/rings.jpg");
+        // Завантаження текстур
+        const loader = new THREE.TextureLoader();
+        Promise.all([
+          loader.loadAsync("assets/textures/saturn.jpg"),
+          loader.loadAsync("assets/textures/rings.jpg")
+        ]).then(([saturnTexture, ringsTexture]) => {
+          // Сатурн
+          const saturn = new THREE.Mesh(
+            new THREE.SphereGeometry(0.5, 64, 64),
+            new THREE.MeshStandardMaterial({
+              map: saturnTexture,
+              metalness: 0.2,
+              roughness: 0.9
+            })
+          );
 
-      // Сатурн (сфера)
-      const saturn = new THREE.Mesh(
-        new THREE.SphereGeometry(0.5, 64, 64),
-        new THREE.MeshStandardMaterial({
-          map: saturnTexture,
-          metalness: 0.2,
-          roughness: 0.9
-        })
-      );
+          // Кільця
+          const rings = new THREE.Mesh(
+            new THREE.RingGeometry(0.65, 1.15, 128),
+            new THREE.MeshStandardMaterial({
+              map: ringsTexture,
+              side: THREE.DoubleSide,
+              transparent: true,
+              alphaTest: 0.5
+            })
+          );
+          rings.rotation.x = -Math.PI / 2;
 
-      // Кільця
-      const rings = new THREE.Mesh(
-        new THREE.RingGeometry(0.65, 1.15, 128),
-        new THREE.MeshStandardMaterial({
-          map: ringsTexture,
-          side: THREE.DoubleSide,
-          transparent: true,
-          alphaTest: 0.5
-        })
-      );
-      rings.rotation.x = -Math.PI / 2;
+          // Група
+          const group = new THREE.Group();
+          group.add(saturn, rings);
+          group.rotation.set(
+            THREE.MathUtils.degToRad(-27),
+            THREE.MathUtils.degToRad(120),
+            0
+          );
 
-      // Група для обертання
-      const group = new THREE.Group();
-      group.add(saturn);
-      group.add(rings);
-      group.rotation.set(
-        THREE.MathUtils.degToRad(-27),
-        THREE.MathUtils.degToRad(120),
-        0
-      );
+          anchor.group.add(group);
 
-      anchor.group.add(group);
+          mindarThree.start().then(() => {
+            console.log("✅ MindAR успішно запущено");
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setAnimationLoop(() => {
+              group.rotation.y += 0.005;
+              renderer.render(scene, camera);
+            });
+          }).catch((err) => {
+            console.error("❌ Помилка запуску:", err);
+          });
 
-      await mindarThree.start();
-      console.log("✅ MindAR успішно запущено");
-
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setAnimationLoop(() => {
-        group.rotation.y += 0.005; // анімація обертання
-        renderer.render(scene, camera);
-      });
-
-      window.addEventListener("resize", () => {
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
+          window.addEventListener("resize", () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+          });
+        }).catch((err) => {
+          console.error("❌ Помилка завантаження текстур:", err);
+        });
+      }
     });
   </script>
 </body>
