@@ -4,25 +4,27 @@
   <meta charset="UTF-8" />
   <title>AR Сатурн — MindAR + Three.js</title>
   <style>
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
+      height: 100%;
       overflow: hidden;
       background-color: black;
     }
-    canvas {
-      display: block;
-      width: 100vw;
-      height: 100vh;
+    #ar-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
     }
     #start-ar {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      padding: 20px 40px;
+      padding: 16px 32px;
       font-size: 18px;
-      z-index: 10;
-      background-color: rgba(255,255,255,0.9);
+      z-index: 2;
+      background: rgba(255,255,255,0.9);
       border: none;
       border-radius: 8px;
       cursor: pointer;
@@ -30,77 +32,74 @@
   </style>
 </head>
 <body>
+  <div id="ar-container">
+    <button id="start-ar">Start AR</button>
+  </div>
 
-  <button id="start-ar">Start AR</button>
-
-  <!-- UMD-версії бібліотек -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+  <!-- MindAR includes its own compatible Three.js version -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script>
 
   <script>
+    const THREE = window.THREE;
     const { MindARThree } = window.MINDAR.IMAGE;
+
     const mindarThree = new MindARThree({
-      container: document.body,
-      imageTargetSrc: 'assets/targets/targets.mind',
+      container: document.querySelector("#ar-container"),
+      imageTargetSrc: "assets/targets/targets.mind",
       uiScanning: false,
     });
 
     const { renderer, scene, camera } = mindarThree;
-
     const anchor = mindarThree.addAnchor(0);
 
     // Освітлення
-    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-    const directional = new THREE.DirectionalLight(0xffffff, 1);
-    directional.position.set(0, 1, 1);
-    scene.add(ambient, directional);
+    scene.add(
+      new THREE.AmbientLight(0xffffff, 0.5),
+      (() => {
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(0, 1, 1);
+        return light;
+      })()
+    );
 
     // Завантаження текстур
     const loader = new THREE.TextureLoader();
-    const saturnTex = loader.load('assets/textures/saturn.jpg');
-    const ringTex = loader.load('assets/textures/rings.jpg');
+    const saturnTex = loader.load("assets/textures/saturn.jpg");
+    const ringTex = loader.load("assets/textures/rings.jpg");
 
     // Сатурн
-    const saturnMat = new THREE.MeshStandardMaterial({
-      map: saturnTex,
-      metalness: 0.2,
-      roughness: 0.9,
-    });
-    const saturnGeo = new THREE.SphereGeometry(2, 64, 64);
-    const saturnMesh = new THREE.Mesh(saturnGeo, saturnMat);
-
-    // Кільце
-    const ringMat = new THREE.MeshStandardMaterial({
-      map: ringTex,
-      side: THREE.DoubleSide,
-      transparent: true,
-      alphaTest: 0.5,
-    });
-    const ringGeo = new THREE.RingGeometry(2.5, 4.5, 128);
-    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-    ringMesh.rotation.x = -Math.PI / 2;
-
-    // Група планети
-    const saturnGroup = new THREE.Group();
-    saturnGroup.add(saturnMesh, ringMesh);
-    saturnGroup.rotation.set(
-      THREE.MathUtils.degToRad(-27),
-      THREE.MathUtils.degToRad(120),
-      0
+    const saturn = new THREE.Mesh(
+      new THREE.SphereGeometry(2, 64, 64),
+      new THREE.MeshStandardMaterial({ map: saturnTex, metalness: 0.2, roughness: 0.9 })
     );
 
+    const rings = new THREE.Mesh(
+      new THREE.RingGeometry(2.5, 4.5, 128),
+      new THREE.MeshStandardMaterial({
+        map: ringTex,
+        side: THREE.DoubleSide,
+        transparent: true,
+        alphaTest: 0.5
+      })
+    );
+    rings.rotation.x = -Math.PI / 2;
+
+    const saturnGroup = new THREE.Group();
+    saturnGroup.add(saturn, rings);
+    saturnGroup.rotation.set(THREE.MathUtils.degToRad(-27), THREE.MathUtils.degToRad(120), 0);
     anchor.group.add(saturnGroup);
 
-    document.getElementById('start-ar').addEventListener('click', async () => {
-      document.getElementById('start-ar').style.display = 'none';
+    document.getElementById("start-ar").addEventListener("click", async () => {
+      document.getElementById("start-ar").style.display = "none";
       await mindarThree.start();
+      renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setAnimationLoop(() => {
         saturnGroup.rotation.y += 0.005;
         renderer.render(scene, camera);
       });
     });
 
-    window.addEventListener('resize', () => {
+    window.addEventListener("resize", () => {
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
   </script>
