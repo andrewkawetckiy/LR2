@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8" />
-  <title>AR Сатурн з MindAR + Three.js</title>
+  <title>AR Сатурн — MindAR + Three.js</title>
   <style>
     body {
       margin: 0;
@@ -30,70 +30,81 @@
   </style>
 </head>
 <body>
-  <button id="start-ar">Start AR</button>
 
-  <script type="module">
-    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
-    import { MindARThree } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-three.prod.js';
+<button id="start-ar">Start AR</button>
 
-    let scene, camera, renderer, saturnGroup;
+<script type="module">
+  import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
+  import { MindARThree } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-three.module.js';
 
-    const mindarThree = new MindARThree({
-      container: document.body,
-      imageTargetSrc: 'assets/targets/targets.mind', // Переконайся, що цей файл існує у репозиторії
-      uiScanning: false,
+  let scene, camera, renderer, saturnGroup;
+
+  const mindarThree = new MindARThree({
+    container: document.body,
+    imageTargetSrc: 'assets/targets/targets.mind',
+    uiScanning: false,
+  });
+
+  ({ renderer, scene, camera } = mindarThree);
+
+  const anchor = mindarThree.addAnchor(0);
+
+  // Lighting
+  const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+  const directional = new THREE.DirectionalLight(0xffffff, 1);
+  directional.position.set(0, 1, 1);
+  scene.add(ambient, directional);
+
+  // Create Saturn
+  const loader = new THREE.TextureLoader();
+
+  const saturnTexture = loader.load('assets/textures/saturn.jpg');
+  const ringTexture = loader.load('assets/textures/rings.jpg');
+
+  const saturnMaterial = new THREE.MeshStandardMaterial({
+    map: saturnTexture,
+    metalness: 0.2,
+    roughness: 0.9,
+  });
+
+  const ringMaterial = new THREE.MeshStandardMaterial({
+    map: ringTexture,
+    side: THREE.DoubleSide,
+    transparent: true,
+    alphaTest: 0.5,
+  });
+
+  const saturnGeometry = new THREE.SphereGeometry(2, 64, 64);
+  const ringGeometry = new THREE.RingGeometry(2.5, 4.5, 128);
+
+  const saturnMesh = new THREE.Mesh(saturnGeometry, saturnMaterial);
+  const ringMesh = new THREE.Mesh(ringGeometry, ringMaterial);
+  ringMesh.rotation.x = -Math.PI / 2;
+
+  saturnGroup = new THREE.Group();
+  saturnGroup.add(saturnMesh);
+  saturnGroup.add(ringMesh);
+  saturnGroup.rotation.set(
+    THREE.MathUtils.degToRad(-27),
+    THREE.MathUtils.degToRad(120),
+    0
+  );
+
+  anchor.group.add(saturnGroup);
+
+  // Start on button click
+  document.getElementById("start-ar").addEventListener("click", async () => {
+    document.getElementById("start-ar").style.display = "none";
+    await mindarThree.start();
+    renderer.setAnimationLoop(() => {
+      saturnGroup.rotation.y += 0.005;
+      renderer.render(scene, camera);
     });
+  });
 
-    ({ scene, camera, renderer } = mindarThree);
-
-    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-    dirLight.position.set(0, 1, 1);
-    scene.add(ambient, dirLight);
-
-    const loader = new THREE.TextureLoader();
-
-    // Сатурн
-    const satTex = loader.load('assets/textures/saturn.jpg');
-    const satMat = new THREE.MeshStandardMaterial({ map: satTex, metalness: 0.2, roughness: 0.9 });
-    const satGeo = new THREE.SphereGeometry(2, 64, 64);
-    const satMesh = new THREE.Mesh(satGeo, satMat);
-
-    // Кільце
-    const ringTex = loader.load('assets/textures/rings.jpg');
-    const ringMat = new THREE.MeshStandardMaterial({
-      map: ringTex,
-      side: THREE.DoubleSide,
-      transparent: true,
-      alphaTest: 0.5
-    });
-    const ringGeo = new THREE.RingGeometry(2.5, 4.5, 256);
-    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-    ringMesh.rotation.x = -Math.PI / 2;
-
-    saturnGroup = new THREE.Group();
-    saturnGroup.add(satMesh, ringMesh);
-    saturnGroup.rotation.set(
-      THREE.MathUtils.degToRad(-27),
-      THREE.MathUtils.degToRad(120),
-      0
-    );
-
-    const anchor = mindarThree.addAnchor(0);
-    anchor.group.add(saturnGroup);
-
-    document.getElementById("start-ar").addEventListener("click", async () => {
-      document.getElementById("start-ar").style.display = "none";
-      await mindarThree.start();
-      renderer.setAnimationLoop(() => {
-        saturnGroup.rotation.y += 0.005;
-        renderer.render(scene, camera);
-      });
-    });
-
-    window.addEventListener('resize', () => {
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-  </script>
+  window.addEventListener('resize', () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+</script>
 </body>
 </html>
