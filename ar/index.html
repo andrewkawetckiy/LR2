@@ -6,6 +6,7 @@
   <style>
     html, body {
       margin: 0;
+      padding: 0;
       height: 100%;
       overflow: hidden;
       background-color: black;
@@ -15,26 +16,12 @@
       height: 100%;
       position: relative;
     }
-    #start-ar {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 2;
-      padding: 16px 32px;
-      font-size: 18px;
-      background: rgba(255,255,255,0.9);
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
   </style>
 </head>
 <body>
-  <div id="ar-container">
-    <button id="start-ar">Start AR</button>
-  </div>
+  <div id="ar-container"></div>
 
-  <!-- MindAR вже містить свою версію Three.js -->
+  <!-- MindAR + включена Three.js -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script>
 
   <script>
@@ -55,7 +42,7 @@
         const mindarThree = new MindARThree({
           container: document.querySelector("#ar-container"),
           imageTargetSrc: "assets/targets/targets.mind",
-          uiScanning: false,
+          uiScanning: false
         });
 
         const { renderer, scene, camera } = mindarThree;
@@ -76,10 +63,14 @@
         const saturnTex = loader.load("assets/textures/saturn.jpg");
         const ringTex = loader.load("assets/textures/rings.jpg");
 
-        // Меші
+        // Геометрії
         const saturn = new THREE.Mesh(
           new THREE.SphereGeometry(2, 64, 64),
-          new THREE.MeshStandardMaterial({ map: saturnTex, metalness: 0.2, roughness: 0.9 })
+          new THREE.MeshStandardMaterial({
+            map: saturnTex,
+            metalness: 0.2,
+            roughness: 0.9
+          })
         );
 
         const rings = new THREE.Mesh(
@@ -93,32 +84,26 @@
         );
         rings.rotation.x = -Math.PI / 2;
 
-        const saturnGroup = new THREE.Group();
-        saturnGroup.add(saturn, rings);
-        saturnGroup.rotation.set(
+        const group = new THREE.Group();
+        group.add(saturn, rings);
+        group.rotation.set(
           THREE.MathUtils.degToRad(-27),
           THREE.MathUtils.degToRad(120),
           0
         );
 
-        anchor.group.add(saturnGroup);
+        anchor.group.add(group);
 
-        document.getElementById("start-ar").addEventListener("click", async () => {
-          console.log("🔵 Кнопка натиснута, запускаємо AR...");
-          document.getElementById("start-ar").style.display = "none";
-
-          try {
-            await mindarThree.start();
-            console.log("✅ mindarThree.start() успішно виконано");
-
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setAnimationLoop(() => {
-              saturnGroup.rotation.y += 0.005;
-              renderer.render(scene, camera);
-            });
-          } catch (err) {
-            console.error("❌ Помилка при запуску MindAR:", err);
-          }
+        // Стартуємо автоматично
+        mindarThree.start().then(() => {
+          console.log("✅ MindAR успішно запущено");
+          renderer.setSize(window.innerWidth, window.innerHeight);
+          renderer.setAnimationLoop(() => {
+            group.rotation.y += 0.005;
+            renderer.render(scene, camera);
+          });
+        }).catch((err) => {
+          console.error("❌ Помилка запуску:", err);
         });
 
         window.addEventListener("resize", () => {
