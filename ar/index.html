@@ -23,14 +23,15 @@
 
   <!-- 2) Ваш основний код як ES-модуль -->
   <script type="module">
-    import * as THREE
-    from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
-
-    // беремо renderer прямо з CDN
-    import {
-      CSS3DRenderer,
-      CSS3DObject
-    } from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/renderers/CSS3DRenderer.js';
+    {
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js",
+    // все, що починається на three/examples/jsm/,
+    // підставиться у відповідну папку на jsdelivr
+    "three/examples/jsm/": 
+      "https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/"
+  }
+}
 
     async function startAR() {
       const mindar = new MindARThree({
