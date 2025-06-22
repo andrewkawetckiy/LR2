@@ -9,79 +9,79 @@
     canvas { position:absolute; top:0; left:0; }
   </style>
 
-  <!-- 1) UMD-зборки Three.js та MindAR (глобальні змінні) -->
+  <!-- 1) UMD-зборка Three.js -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-three.prod.js"></script>
+
+  <!-- 2) UMD-зборка MindAR для Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-three.prod.umd.js"></script>
 </head>
 <body>
 
-  <!-- AR-контейнер, куди MindAR посадить відео та WebGL-канвас -->
   <div id="ar-container"></div>
 
   <script>
-    // 2) Дістаємо конструктор із глобалу
-    const { MindARThree } = MINDAR.IMAGE;
+    // 3) з UMD-версії приходить глобальний обʼєкт MindAR
+    //    Простежте, щоб підключили саме mindar-image-three.prod.umd.js
+    const { MindARThree } = MindAR.IMAGE;
 
     async function startAR() {
-      // 3) Ініціалізуємо MindAR
+      // 4) Ініціалізація MindAR + Three.js сцени
       const mindarThree = new MindARThree({
         container: document.querySelector('#ar-container'),
-        imageTargetSrc: 'assets/targets.mind',  // ваш таргет-файл
+        imageTargetSrc: 'assets/targets.mind',
         uiScanning: true,
         uiLoading: 'Завантажуємо…'
       });
       const { renderer, scene, camera } = mindarThree;
 
-      // 4) Додаємо світло
+      // 5) Додаємо світло
       scene.add(new THREE.AmbientLight(0xffffff, 0.2));
       const point = new THREE.PointLight(0xffffff, 1, 50);
       point.castShadow = true;
       scene.add(point);
 
-      // 5) Прив’язуємо контейнер контенту до першого таргета (index 0)
+      // 6) В’язка контенту до таргета #0
       const anchor = mindarThree.addAnchor(0);
       const saturnGroup = new THREE.Group();
       anchor.group.add(saturnGroup);
 
-      // 6) Пакуємо текстури
+      // 7) Завантажуємо текстури
       const loader = new THREE.TextureLoader();
       const texSat  = loader.load('assets/textures/saturn.jpg');
       const texRing = loader.load('assets/textures/rings.jpg');
 
-      // 7) Сфера Сатурна
-      const matSat = new THREE.MeshStandardMaterial({
-        map: texSat, metalness: 0.2, roughness: 0.9
-      });
+      // 8) Створюємо сферу Сатурна
       const meshSat = new THREE.Mesh(
         new THREE.SphereGeometry(2, 64, 64),
-        matSat
+        new THREE.MeshStandardMaterial({
+          map: texSat, metalness: 0.2, roughness: 0.9
+        })
       );
       meshSat.castShadow = true;
       saturnGroup.add(meshSat);
 
-      // 8) Кільце
-      const matRing = new THREE.MeshStandardMaterial({
-        map: texRing,
-        side: THREE.DoubleSide,
-        transparent: true,
-        alphaTest: 0.5
-      });
+      // 9) Створюємо кільце
       const meshRing = new THREE.Mesh(
         new THREE.RingGeometry(2.5, 4.5, 256),
-        matRing
+        new THREE.MeshStandardMaterial({
+          map: texRing,
+          side: THREE.DoubleSide,
+          transparent: true,
+          alphaTest: 0.5
+        })
       );
       meshRing.rotation.x = -Math.PI/2;
       meshRing.castShadow = true;
       saturnGroup.add(meshRing);
 
-      // 9) Підлаштування під розмір вікна
+      // 10) Підлаштування під вікно
       window.addEventListener('resize', () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
         camera.aspect = window.innerWidth/window.innerHeight;
         camera.updateProjectionMatrix();
       });
 
-      // 10) Старт AR та анімація
+      // 11) Запуск AR та анімація
       await mindarThree.start();
       renderer.setAnimationLoop(() => {
         saturnGroup.rotation.y += 0.005;
