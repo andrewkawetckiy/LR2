@@ -1,66 +1,104 @@
 <!DOCTYPE html>
-<html>
+<html lang="uk">
 <head>
-  <meta charset="UTF-8">
-  <title>MindAR + Three.js Saturn</title>
+  <meta charset="UTF-8" />
+  <title>AR Сатурн — MindAR + Three.js</title>
   <style>
-    body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: black; }
-    #ar-container { width: 100%; height: 100%; position: relative; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background-color: black;
+    }
+    #ar-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
   </style>
 </head>
 <body>
   <div id="ar-container"></div>
 
+  <!-- Підключаємо MindAR з вбудованим Three.js -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script>
 
   <script>
     window.addEventListener("load", () => {
       const { MindARThree } = window.MINDAR.IMAGE;
+
       const mindarThree = new MindARThree({
         container: document.querySelector("#ar-container"),
-        imageTargetSrc: "./targets/targets.mind"
+        imageTargetSrc: "assets/targets/targets.mind", // ⚠️ ВАЖЛИВО: шлях до вашого .mind-файлу
+        uiScanning: true,
+        uiLoading: "yes",
       });
 
-      const { renderer, scene, camera } = mindarThree;
+      const { renderer, scene, camera, THREE } = mindarThree;
 
       const anchor = mindarThree.addAnchor(0);
 
-      const light = new THREE.DirectionalLight(0xffffff, 1);
-      light.position.set(0, 1, 1);
-      scene.add(light);
-      scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+      // Освітлення
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+      directionalLight.position.set(0, 1, 1);
+      scene.add(directionalLight);
 
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
+
+      // Текстури
       const loader = new THREE.TextureLoader();
-      const saturnTex = loader.load("./textures/saturn.jpg");
-      const ringTex = loader.load("./textures/rings.jpg");
+      const saturnTexture = loader.load("assets/textures/saturn.jpg"); // 🪐 текстура планети
+      const ringTexture = loader.load("assets/textures/rings.jpg");    // 🪐 текстура кілець
 
+      // Геометрія Сатурна
       const saturn = new THREE.Mesh(
         new THREE.SphereGeometry(2, 64, 64),
-        new THREE.MeshStandardMaterial({ map: saturnTex })
+        new THREE.MeshStandardMaterial({
+          map: saturnTexture,
+          metalness: 0.2,
+          roughness: 0.9,
+        })
       );
 
+      // Геометрія кілець
       const rings = new THREE.Mesh(
         new THREE.RingGeometry(2.5, 4.5, 128),
         new THREE.MeshStandardMaterial({
-          map: ringTex,
+          map: ringTexture,
           side: THREE.DoubleSide,
           transparent: true,
-          alphaTest: 0.5
+          alphaTest: 0.5,
         })
       );
       rings.rotation.x = -Math.PI / 2;
 
-      const group = new THREE.Group();
-      group.add(saturn);
-      group.add(rings);
-      anchor.group.add(group);
+      // Група об’єктів
+      const saturnGroup = new THREE.Group();
+      saturnGroup.add(saturn);
+      saturnGroup.add(rings);
+      saturnGroup.rotation.set(
+        THREE.MathUtils.degToRad(-27),
+        THREE.MathUtils.degToRad(120),
+        0
+      );
 
+      anchor.group.add(saturnGroup);
+
+      // Анімація
       mindarThree.start().then(() => {
+        console.log("✅ AR запущено!");
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setAnimationLoop(() => {
-          group.rotation.y += 0.005;
+          saturnGroup.rotation.y += 0.005; // обертання навколо осі Y
           renderer.render(scene, camera);
         });
+      });
+
+      // Зміна розміру вікна
+      window.addEventListener("resize", () => {
+        renderer.setSize(window.innerWidth, window.innerHeight);
       });
     });
   </script>
