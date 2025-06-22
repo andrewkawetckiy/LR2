@@ -10,95 +10,88 @@
 </head>
 <body>
 
-  <!-- MindAR і Three.js -->
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.2/dist/mindar-three.prod.js"></script> 
-  <script type="module">
+<!-- Load MindAR first -->
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.3.0/dist/mindar-three.prod.js"></script> 
 
-    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js'; 
+<!-- Then your module script -->
+<script type="module">
 
-    let scene, camera, renderer;
-    let saturnGroup;
+  import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js'; 
 
-    init();
-    animate();
+  let scene, camera, renderer;
+  let saturnGroup;
 
-    async function init() {
-      // 1. Ініціалізація MindAR (використовуємо ваш targets.mind)
-      const mindArViewer = new window.MINDAR.IMAGE.MindARThree({
-        container: document.body,
-        imageTargetSrc: 'assets/targets/targets.mind', // ВАШ локальний файл
-      });
+  init();
+  animate();
 
-      ({ scene, camera, renderer } = mindArViewer);
+  async function init() {
+    const mindArViewer = new window.MINDAR.IMAGE.MindARThree({
+      container: document.body,
+      imageTargetSrc: 'assets/targets/targets.mind', // Make sure this path is correct
+    });
 
-      // 2. Додаємо освітлення
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-      scene.add(ambientLight);
+    ({ scene, camera, renderer } = mindArViewer);
 
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-      directionalLight.position.set(0, 1, 1);
-      scene.add(directionalLight);
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
 
-      // 3. Група для Сатурна
-      saturnGroup = new THREE.Group();
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(0, 1, 1);
+    scene.add(directionalLight);
 
-      // 4. Текстури та об'єкти
-      const loader = new THREE.TextureLoader();
+    // Saturn setup
+    saturnGroup = new THREE.Group();
+    const loader = new THREE.TextureLoader();
 
-      // Сатурн
-      const satTex = loader.load('assets/textures/saturn.jpg');
-      const satMat = new THREE.MeshStandardMaterial({ map: satTex, metalness: 0.2, roughness: 0.9 });
-      const satGeo = new THREE.SphereGeometry(2, 64, 64);
-      const satMesh = new THREE.Mesh(satGeo, satMat);
-      satMesh.castShadow = true;
-      satMesh.receiveShadow = true;
+    const satTex = loader.load('assets/textures/saturn.jpg');
+    const satMat = new THREE.MeshStandardMaterial({ map: satTex, metalness: 0.2, roughness: 0.9 });
+    const satGeo = new THREE.SphereGeometry(2, 64, 64);
+    const satMesh = new THREE.Mesh(satGeo, satMat);
+    satMesh.castShadow = true;
+    satMesh.receiveShadow = true;
 
-      // Кільце
-      const ringTex = loader.load('assets/textures/rings.jpg');
-      const ringMat = new THREE.MeshStandardMaterial({
-        map: ringTex,
-        side: THREE.DoubleSide,
-        transparent: true,
-        alphaTest: 0.5
-      });
-      const ringGeo = new THREE.RingGeometry(2.5, 4.5, 256);
-      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-      ringMesh.rotation.x = -Math.PI / 2;
+    const ringTex = loader.load('assets/textures/rings.jpg');
+    const ringMat = new THREE.MeshStandardMaterial({
+      map: ringTex,
+      side: THREE.DoubleSide,
+      transparent: true,
+      alphaTest: 0.5
+    });
+    const ringGeo = new THREE.RingGeometry(2.5, 4.5, 256);
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringMesh.rotation.x = -Math.PI / 2;
 
-      // Додаємо до групи
-      saturnGroup.add(satMesh);
-      saturnGroup.add(ringMesh);
+    saturnGroup.add(satMesh);
+    saturnGroup.add(ringMesh);
+    saturnGroup.rotation.set(
+      THREE.MathUtils.degToRad(-27),
+      THREE.MathUtils.degToRad(120),
+      0
+    );
 
-      // Повертаємо трохи для кращого вигляду
-      saturnGroup.rotation.set(
-        THREE.MathUtils.degToRad(-27),
-        THREE.MathUtils.degToRad(120),
-        0
-      );
+    const anchor = mindArViewer.addAnchor(0);
+    anchor.group.add(saturnGroup);
 
-      // 5. Прикріплюємо до першого маркера (targetIndex=0)
-      const anchor = mindArViewer.addAnchor(0);
-      anchor.group.add(saturnGroup);
+    await mindArViewer.start();
 
-      // 6. Запускаємо AR
-      await mindArViewer.start();
+    window.addEventListener('resize', () => {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  }
 
-      // 7. Адаптація під розмір вікна
-      window.addEventListener('resize', () => {
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
+  function animate() {
+    requestAnimationFrame(animate);
+
+    if (saturnGroup) {
+      saturnGroup.rotation.y += 0.005;
     }
 
-    function animate() {
-      requestAnimationFrame(animate);
-
-      if (saturnGroup) {
-        saturnGroup.rotation.y += 0.005; // Обертання Сатурна
-      }
-
+    if (renderer && scene && camera) {
       renderer.render(scene, camera);
     }
+  }
 
-  </script>
+</script>
 </body>
 </html>
