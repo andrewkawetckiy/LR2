@@ -28,6 +28,7 @@
     window.addEventListener("load", () => {
       const waitUntilReady = () => {
         if (window.MINDAR?.IMAGE?.MindARThree) {
+          console.log("MindARThree is ready");
           startAR();
         } else {
           console.warn("⏳ Чекаємо на MindAR...");
