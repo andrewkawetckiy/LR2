@@ -10,26 +10,38 @@
 </head>
 <body>
 
-<!-- ✅ First: Load MindAR -->
+<!-- Load MindAR first -->
 <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.3.0/dist/mindar-three.prod.js"></script> 
 
-<!-- ✅ Then: Load your module code -->
+<!-- Then load your module code -->
 <script type="module">
 
-  // Now safe to use window.MINDAR
   import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js'; 
 
   let scene, camera, renderer;
   let saturnGroup;
 
-  init();
-  animate();
+  // Safety check to wait for MINDAR to be available
+  function waitForMindAR() {
+    return new Promise((resolve) => {
+      const interval = setInterval(() => {
+        if (window.MINDAR?.IMAGE?.MindARThree) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 100);
+    });
+  }
 
   async function init() {
-    // ✅ Safe now because script loaded first
+    // Wait for library to fully load
+    await waitForMindAR();
+
+    // Initialize AR viewer
     const mindArViewer = new window.MINDAR.IMAGE.MindARThree({
       container: document.body,
       imageTargetSrc: 'assets/targets/targets.mind',
+      uiScanning: false,
     });
 
     ({ scene, camera, renderer } = mindArViewer);
@@ -42,11 +54,12 @@
     directionalLight.position.set(0, 1, 1);
     scene.add(directionalLight);
 
-    // Saturn setup...
+    // Saturn setup
     saturnGroup = new THREE.Group();
 
     const loader = new THREE.TextureLoader();
 
+    // Saturn texture
     const satTex = loader.load('assets/textures/saturn.jpg');
     const satMat = new THREE.MeshStandardMaterial({ map: satTex, metalness: 0.2, roughness: 0.9 });
     const satGeo = new THREE.SphereGeometry(2, 64, 64);
@@ -54,6 +67,7 @@
     satMesh.castShadow = true;
     satMesh.receiveShadow = true;
 
+    // Ring texture
     const ringTex = loader.load('assets/textures/rings.jpg');
     const ringMat = new THREE.MeshStandardMaterial({
       map: ringTex,
@@ -65,6 +79,7 @@
     const ringMesh = new THREE.Mesh(ringGeo, ringMat);
     ringMesh.rotation.x = -Math.PI / 2;
 
+    // Add to group
     saturnGroup.add(satMesh);
     saturnGroup.add(ringMesh);
     saturnGroup.rotation.set(
@@ -73,11 +88,14 @@
       0
     );
 
+    // Attach to anchor
     const anchor = mindArViewer.addAnchor(0);
     anchor.group.add(saturnGroup);
 
+    // Start AR session
     await mindArViewer.start();
 
+    // Handle resize
     window.addEventListener('resize', () => {
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
@@ -94,6 +112,11 @@
       renderer.render(scene, camera);
     }
   }
+
+  // Run in sequence
+  init().then(() => {
+    animate();
+  });
 
 </script>
 
