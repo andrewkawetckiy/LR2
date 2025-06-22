@@ -2,67 +2,55 @@
 <html lang="uk">
 <head>
   <meta charset="utf-8">
-  <title>AR Сатурн – Three.js + MindAR (UMD)</title>
+  <title>AR Сатурн – Three.js + MindAR (ESM)</title>
   <style>
     body, html { margin: 0; overflow: hidden; }
-    #ar-container { position: relative; width: 100vw; height: 100vh; }
-    canvas { position: absolute; top: 0; left: 0; }
+    #ar-container { width: 100vw; height: 100vh; }
   </style>
-
-  <!-- Three.js UMD -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-
-  <!-- MindAR core UMD -->
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-core.prod.js"></script>
-
-  <!-- MindAR→Three плагін UMD -->
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-three.prod.js"></script>
 </head>
 <body>
   <div id="ar-container"></div>
 
-  <script>
-    // Після підключення двох скриптів в window.MINDAR вже зʼявиться IMAGE
-    console.log('MINDAR:', window.MINDAR);            // має бути обʼєкт
-    console.log('MINDAR.IMAGE:', window.MINDAR.IMAGE); // має бути простір імен
-
-    const { MindARThree } = window.MINDAR.IMAGE;
+  <script type="module">
+    // 1) Імпортуємо ES‐модулі напряму з CDN
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
+    import { MindARThree } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-three.prod.js';
 
     async function startAR() {
-      const mindarThree = new MindARThree({
+      // 2) Ініціалізуємо MindAR
+      const mindar = new MindARThree({
         container: document.querySelector('#ar-container'),
-        imageTargetSrc: 'assets/targets.mind',
+        imageTargetSrc: 'assets/targets.mind',  // шаримо з репозиторію
         uiScanning: true,
         uiLoading: 'Завантажуємо…'
       });
-      const { renderer, scene, camera } = mindarThree;
+      const { renderer, scene, camera } = mindar;
 
-      // Світло
+      // 3) Світла
       scene.add(new THREE.AmbientLight(0xffffff, 0.2));
       const point = new THREE.PointLight(0xffffff, 1, 50);
       point.castShadow = true;
       scene.add(point);
 
-      // Привʼязка до таргета #0
-      const anchor = mindarThree.addAnchor(0);
-      const saturnGroup = new THREE.Group();
-      anchor.group.add(saturnGroup);
+      // 4) Anchor для першого таргета
+      const anchor = mindar.addAnchor(0);
+      const group = new THREE.Group();
+      anchor.group.add(group);
 
-      // Текстури
+      // 5) Текстури
       const loader = new THREE.TextureLoader();
       const texSat  = loader.load('assets/textures/saturn.jpg');
       const texRing = loader.load('assets/textures/rings.jpg');
 
-      // Сфера
-      const meshSat = new THREE.Mesh(
+      // 6) Меші Сатурна
+      const satMesh = new THREE.Mesh(
         new THREE.SphereGeometry(2, 64, 64),
         new THREE.MeshStandardMaterial({ map: texSat, metalness: 0.2, roughness: 0.9 })
       );
-      meshSat.castShadow = true;
-      saturnGroup.add(meshSat);
+      satMesh.castShadow = true;
+      group.add(satMesh);
 
-      // Кільце
-      const meshRing = new THREE.Mesh(
+      const ringMesh = new THREE.Mesh(
         new THREE.RingGeometry(2.5, 4.5, 256),
         new THREE.MeshStandardMaterial({
           map: texRing,
@@ -71,21 +59,21 @@
           alphaTest: 0.5
         })
       );
-      meshRing.rotation.x = -Math.PI/2;
-      meshRing.castShadow = true;
-      saturnGroup.add(meshRing);
+      ringMesh.rotation.x = -Math.PI / 2;
+      ringMesh.castShadow = true;
+      group.add(ringMesh);
 
-      // Resize
+      // 7) Підлаштування під розмір вікна
       window.addEventListener('resize', () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
-        camera.aspect = window.innerWidth/window.innerHeight;
+        camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
       });
 
-      // Старт AR + анімація
-      await mindarThree.start();
+      // 8) Старт AR і запуск рендер‐ліптуна
+      await mindar.start();
       renderer.setAnimationLoop(() => {
-        saturnGroup.rotation.y += 0.005;
+        group.rotation.y += 0.005;
         renderer.render(scene, camera);
       });
     }
