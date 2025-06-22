@@ -6,60 +6,39 @@
   <style>
     html, body {
       margin: 0;
-      padding: 0;
       height: 100%;
       overflow: hidden;
       background: black;
     }
     #ar-container {
-      position: relative;
       width: 100%;
       height: 100%;
+      position: relative;
     }
   </style>
 </head>
 <body>
   <div id="ar-container"></div>
 
-  <!-- MindAR з вбудованою Three.js -->
-  <script src="https://unpkg.com/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script>
+  <!-- Стабільна версія з CDN, яка на 100% підключає window.MINDAR і window.THREE -->
+  <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@v1.1.5/dist/mindar-image-three.prod.js"></script>
 
   <script>
     window.addEventListener("load", () => {
-      console.log("🌐 Сторінка завантажена");
+      console.log("✅ Сторінка завантажена");
 
-      // 🔍 Перевіримо доступ до камери окремо
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ video: true })
-          .then(() => {
-            console.log("✅ Камера доступна");
-          })
-          .catch((err) => {
-            console.error("🚫 Камера не працює або заблокована:", err);
-          });
-      } else {
-        console.warn("⚠️ navigator.mediaDevices не підтримується браузером");
-      }
-
-      // Чекаємо, поки MindAR і THREE будуть доступні
-      const waitReady = () => {
-        if (window.MINDAR?.IMAGE?.MindARThree && window.THREE) {
-          console.log("✅ MindARThree і THREE доступні");
-          runApp();
-        } else {
-          console.log("⏳ Чекаємо на завантаження MindAR / THREE...");
-          setTimeout(waitReady, 100);
-        }
-      };
-      waitReady();
-
-      function runApp() {
+      const tryStart = () => {
         const THREE = window.THREE;
-        const { MindARThree } = window.MINDAR.IMAGE;
+        const MINDAR = window.MINDAR?.IMAGE;
 
-        console.log("🚀 Запускаємо AR...");
+        if (!THREE || !MINDAR?.MindARThree) {
+          console.warn("⏳ Очікуємо появу window.THREE і window.MINDAR...");
+          return setTimeout(tryStart, 100);
+        }
 
-        const mindarThree = new MindARThree({
+        console.log("🚀 Стартуємо AR-сцену");
+
+        const mindarThree = new MINDAR.MindARThree({
           container: document.querySelector("#ar-container"),
           imageTargetSrc: "assets/targets/targets.mind",
           uiScanning: true,
@@ -70,21 +49,22 @@
         const anchor = mindarThree.addAnchor(0);
 
         // Освітлення
-        console.log("💡 Додаємо освітлення...");
-        const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-        const directional = new THREE.DirectionalLight(0xffffff, 1);
-        directional.position.set(0, 1, 1);
-        scene.add(ambient, directional);
+        scene.add(
+          new THREE.AmbientLight(0xffffff, 0.5),
+          (() => {
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(0, 1, 1);
+            return light;
+          })()
+        );
 
         // Завантаження текстур
         const loader = new THREE.TextureLoader();
-        console.log("🎨 Завантажуємо текстури...");
         Promise.all([
           loader.loadAsync("assets/textures/saturn.jpg"),
           loader.loadAsync("assets/textures/rings.jpg")
-        ]).then(([saturnTex, ringsTex]) => {
-          console.log("✅ Текстури завантажені");
-
+        ])
+        .then(([saturnTex, ringsTex]) => {
           const saturn = new THREE.Mesh(
             new THREE.SphereGeometry(0.5, 64, 64),
             new THREE.MeshStandardMaterial({ map: saturnTex, metalness: 0.2, roughness: 0.9 })
@@ -108,28 +88,22 @@
             THREE.MathUtils.degToRad(120),
             0
           );
+
           anchor.group.add(group);
 
-          // Запуск AR
           mindarThree.start().then(() => {
-            console.log("✅ mindarThree.start() успішно виконано");
+            console.log("✅ AR запущено");
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setAnimationLoop(() => {
               group.rotation.y += 0.005;
               renderer.render(scene, camera);
             });
-          }).catch((err) => {
-            console.error("❌ Помилка під час запуску MindAR:", err);
           });
+        })
+        .catch(err => console.error("❌ Помилка текстур:", err));
+      };
 
-          window.addEventListener("resize", () => {
-            renderer.setSize(window.innerWidth, window.innerHeight);
-          });
-
-        }).catch((err) => {
-          console.error("❌ Помилка під час завантаження текстур:", err);
-        });
-      }
+      tryStart();
     });
   </script>
 </body>
