@@ -11,74 +11,76 @@
 </head>
 <body>
 
-  <!-- контейнер для камери та канвасу -->
+  <!-- тут рендеритиметься відеопотік камери та WebGL -->
   <div id="ar-container"></div>
 
-  <!-- Three.js та MindAR бібліотеки -->
   <script type="module">
-    import * as THREE       from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
-    import { MindARThree }  from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-three.prod.js';
+    // 1) абсолютні імпорти з CDN
+    import * as THREE      from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
+    import { MindARThree } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-three.prod.js';
 
     const start = async () => {
-      // 1. Ініціалізуємо MindAR
-      //    imageTargetSrc — файл, згенерований MindAR-cli (наприклад, з фото плаката)
+      // 2) ініціалізація MindAR
       const mindar = new MindARThree({
         container: document.querySelector('#ar-container'),
-        imageTargetSrc: 'assets/targets.mind',  
-        uiScanning: true,      // показувати індикатор сканування
-        uiLoading: 'Завантажуємо…',
+        imageTargetSrc: 'assets/targets.mind',   // ваш згенерований таргет-файл
+        uiScanning: true,
+        uiLoading: 'Завантажуємо…'
       });
       const { renderer, scene, camera } = mindar;
 
-      // 2. Додаємо світло
-      const ambient = new THREE.AmbientLight(0xffffff, 0.2);
-      scene.add(ambient);
+      // 3) світло
+      scene.add(new THREE.AmbientLight(0xffffff, 0.2));
       const point = new THREE.PointLight(0xffffff, 1, 50);
       point.castShadow = true;
       scene.add(point);
 
-      // 3. Група для Сатурна, що «пристромиться» до таргета
-      const anchor = mindar.addAnchor(0);  
+      // 4) прив’язка контенту до першого таргету
+      const anchor = mindar.addAnchor(0);
       const saturnGroup = new THREE.Group();
-      saturnGroup.position.set(0, 0, 0);
       anchor.group.add(saturnGroup);
 
-      // 4. Завантажуємо текстури
+      // 5) завантажувач текстур
       const loader = new THREE.TextureLoader();
-      const satTex   = loader.load('assets/textures/saturn.jpg');
-      const ringsTex = loader.load('assets/textures/rings.jpg');
+      const texSat  = loader.load('assets/textures/saturn.jpg');
+      const texRing = loader.load('assets/textures/rings.jpg');
 
-      // 5. Створюємо сферу Сатурна
-      const satMat = new THREE.MeshStandardMaterial({
-        map: satTex, metalness: 0.2, roughness: 0.9
+      // 6) сфера (Сатурн)
+      const matSat = new THREE.MeshStandardMaterial({
+        map: texSat, metalness: 0.2, roughness: 0.9
       });
-      const satGeo = new THREE.SphereGeometry(2, 64, 64);
-      const satMesh = new THREE.Mesh(satGeo, satMat);
-      satMesh.castShadow = true;
-      saturnGroup.add(satMesh);
+      const meshSat = new THREE.Mesh(
+        new THREE.SphereGeometry(2, 64, 64),
+        matSat
+      );
+      meshSat.castShadow = true;
+      saturnGroup.add(meshSat);
 
-      // 6. Створюємо кільце
-      const ringMat = new THREE.MeshStandardMaterial({
-        map: ringsTex, side: THREE.DoubleSide,
-        transparent: true, alphaTest: 0.5
+      // 7) кільце
+      const matRing = new THREE.MeshStandardMaterial({
+        map: texRing,
+        side: THREE.DoubleSide,
+        transparent: true,
+        alphaTest: 0.5
       });
-      const ringGeo = new THREE.RingGeometry(2.5, 4.5, 256);
-      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-      ringMesh.rotation.x = -Math.PI/2;
-      ringMesh.castShadow = true;
-      saturnGroup.add(ringMesh);
+      const meshRing = new THREE.Mesh(
+        new THREE.RingGeometry(2.5, 4.5, 256),
+        matRing
+      );
+      meshRing.rotation.x = -Math.PI / 2;
+      meshRing.castShadow = true;
+      saturnGroup.add(meshRing);
 
-      // 7. Обробка вікна
+      // 8) адаптація під вікно
       window.addEventListener('resize', () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
-        camera.aspect = window.innerWidth/window.innerHeight;
+        camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
       });
 
-      // 8. Запуск AR та анімація
+      // 9) старт AR та анімація
       await mindar.start();
       renderer.setAnimationLoop(() => {
-        // нехай Сатурн обертається
         saturnGroup.rotation.y += 0.005;
         renderer.render(scene, camera);
       });
