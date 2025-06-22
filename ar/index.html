@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>AR Сатурн на Three.js з MindAR</title>
+  <title>MindAR Test</title>
   <style>
     body { margin: 0; overflow: hidden; }
     canvas {
@@ -10,7 +10,7 @@
       width: 100vw;
       height: 100vh;
     }
-    #start-ar {
+    #start-btn {
       position: absolute;
       top: 50%;
       left: 50%;
@@ -26,37 +26,38 @@
 <!-- ✅ Use working version -->
 <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-three.prod.js"></script> 
 
+<!-- Start button -->
+<button id="start-btn">Start AR</button>
+
 <!-- Your module code -->
 <script type="module">
 
   import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js'; 
 
   let scene, camera, renderer;
-  let saturnGroup;
-
-  function waitForMindAR() {
-    return new Promise((resolve) => {
-      const interval = setInterval(() => {
-        if (window.MINDAR?.IMAGE?.MindARThree) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 100);
-    });
-  }
 
   async function init() {
-    await waitForMindAR();
+    // Wait for MINDAR to load
+    if (!window.MINDAR || !window.MINDAR.IMAGE || !window.MINDAR.IMAGE.MindARThree) {
+      console.error("MindAR failed to load");
+      return;
+    }
 
     const mindArViewer = new window.MINDAR.IMAGE.MindARThree({
       container: document.body,
-      imageTargetSrc: 'assets/targets/targets.mind',
+      imageTargetSrc: 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/examples/image-tracking/assets/band-example/band-marker.mind', 
       uiScanning: false,
     });
 
     ({ scene, camera, renderer } = mindArViewer);
 
-    // Lighting
+    const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+    const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+    const cube = new THREE.Mesh(geometry, material);
+
+    const anchor = mindArViewer.addAnchor(0);
+    anchor.group.add(cube);
+
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
 
@@ -64,53 +65,14 @@
     directionalLight.position.set(0, 1, 1);
     scene.add(directionalLight);
 
-    // Saturn setup
-    saturnGroup = new THREE.Group();
-
-    const loader = new THREE.TextureLoader();
-
-    const satTex = loader.load('assets/textures/saturn.jpg');
-    const satMat = new THREE.MeshStandardMaterial({ map: satTex, metalness: 0.2, roughness: 0.9 });
-    const satGeo = new THREE.SphereGeometry(2, 64, 64);
-    const satMesh = new THREE.Mesh(satGeo, satMat);
-    satMesh.castShadow = true;
-    satMesh.receiveShadow = true;
-
-    const ringTex = loader.load('assets/textures/rings.jpg');
-    const ringMat = new THREE.MeshStandardMaterial({
-      map: ringTex,
-      side: THREE.DoubleSide,
-      transparent: true,
-      alphaTest: 0.5
-    });
-    const ringGeo = new THREE.RingGeometry(2.5, 4.5, 256);
-    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-    ringMesh.rotation.x = -Math.PI / 2;
-
-    saturnGroup.add(satMesh);
-    saturnGroup.add(ringMesh);
-    saturnGroup.rotation.set(
-      THREE.MathUtils.degToRad(-27),
-      THREE.MathUtils.degToRad(120),
-      0
-    );
-
-    const anchor = mindArViewer.addAnchor(0);
-    anchor.group.add(saturnGroup);
-
-    // Wait for user interaction before starting camera
-    document.getElementById("start-ar").addEventListener("click", async () => {
-      document.getElementById("start-ar").style.display = "none";
+    document.getElementById("start-btn").addEventListener("click", async () => {
+      document.getElementById("start-btn").style.display = "none";
       await mindArViewer.start();
     });
   }
 
   function animate() {
     requestAnimationFrame(animate);
-
-    if (saturnGroup) {
-      saturnGroup.rotation.y += 0.005;
-    }
 
     if (renderer && scene && camera) {
       renderer.render(scene, camera);
@@ -122,9 +84,5 @@
   });
 
 </script>
-
-<!-- Start button -->
-<button id="start-ar">Start AR</button>
-
 </body>
 </html>
