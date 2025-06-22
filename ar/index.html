@@ -23,8 +23,14 @@
 
   <!-- 2) Ваш основний код як ES-модуль -->
   <script type="module">
-    import * as THREE        from 'three';
-    import { MindARThree }   from 'mind-ar/image-three';
+    import * as THREE
+    from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
+
+    // беремо renderer прямо з CDN
+    import {
+      CSS3DRenderer,
+      CSS3DObject
+    } from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/renderers/CSS3DRenderer.js';
 
     async function startAR() {
       const mindar = new MindARThree({
