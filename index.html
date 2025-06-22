@@ -1,83 +1,97 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8" />
-  <title>Three.js VR Сатурн (ES-модулі)</title>
+  <meta charset="UTF-8">
+  <title>VR Сатурн на Three.js</title>
   <style>
     body { margin: 0; overflow: hidden; }
     canvas { display: block; }
   </style>
 </head>
 <body>
-  <script type="module">
-    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js';
-    import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/controls/OrbitControls.js';
-    import { VRButton } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/webxr/VRButton.js';
 
-    let scene, camera, renderer, controls;
+  <!-- Підключаємо Three.js та VRButton -->
+  <script type="module">
+    import * as THREE    from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
+    import { VRButton }  from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/webxr/VRButton.js';
+
+    let scene, camera, renderer;
     let saturnGroup;
 
     init();
     animate();
 
     function init() {
+      // 1. Сцена і фон
       scene = new THREE.Scene();
+      const loader = new THREE.TextureLoader();
+      scene.background = loader.load('assets/textures/night_sky.jpg');
 
-      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-      camera.position.set(0, 2, 10);
+      // 2. Камера
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 2, 0);
 
+      // 3. Рендерер з VR-підтримкою
       renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.xr.enabled = true;
+      renderer.shadowMap.enabled = true;
       document.body.appendChild(renderer.domElement);
       document.body.appendChild(VRButton.createButton(renderer));
 
-      controls = new OrbitControls(camera, renderer.domElement);
+      // 4. Світло
+      const ambient = new THREE.AmbientLight(0xffffff, 0.2);
+      scene.add(ambient);
 
-      // Освітлення
-      scene.add(new THREE.AmbientLight(0xffffff, 0.2));
-      const dirLight = new THREE.DirectionalLight(0xffffff, 0.3);
-      dirLight.position.set(0, 0, 0);
-      scene.add(dirLight);
-      const pointLight = new THREE.PointLight(0xffffff, 1, 50);
-      pointLight.position.set(0, 0, 0);
-      scene.add(pointLight);
+      const point = new THREE.PointLight(0xffffff, 1, 50);
+      point.position.set(0, 0, 0);
+      point.castShadow = true;
+      scene.add(point);
 
-      // Нічне небо
-      const skyGeo = new THREE.SphereGeometry(100, 64, 64);
-      const skyTex = new THREE.TextureLoader().load('textures/night_sky.jpg');
-      const skyMat = new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide });
-      scene.add(new THREE.Mesh(skyGeo, skyMat));
+      const dir = new THREE.DirectionalLight(0xffffff, 0.2);
+      dir.position.set(5, 5, 5);
+      dir.castShadow = true;
+      scene.add(dir);
 
-      // Сатурн
+      // 5. Група Сатурна (щоб разом обертати сферу + кільце)
       saturnGroup = new THREE.Group();
-      saturnGroup.rotation.set(THREE.MathUtils.degToRad(-27), THREE.MathUtils.degToRad(120), 0);
       saturnGroup.position.set(0, 0, -10);
+      saturnGroup.rotation.set(
+        THREE.MathUtils.degToRad(-27),
+        THREE.MathUtils.degToRad(120),
+        0
+      );
       scene.add(saturnGroup);
 
-      // Сатурн-сфера
-      const saturnTex = new THREE.TextureLoader().load('textures/saturn.jpg');
-      const saturnMat = new THREE.MeshStandardMaterial({
-        map: saturnTex,
+      // 5a. Сфера (Сатурн)
+      const satTex = loader.load('assets/textures/saturn.jpg');
+      const satMat = new THREE.MeshStandardMaterial({
+        map: satTex,
         metalness: 0.2,
         roughness: 0.9
       });
-      const saturnMesh = new THREE.Mesh(new THREE.SphereGeometry(2, 64, 64), saturnMat);
-      saturnGroup.add(saturnMesh);
+      const satGeo = new THREE.SphereGeometry(2, 64, 64);
+      const satMesh = new THREE.Mesh(satGeo, satMat);
+      satMesh.castShadow = true;
+      satMesh.receiveShadow = true;
+      saturnGroup.add(satMesh);
 
-      // Кільце
-      const ringTex = new THREE.TextureLoader().load('textures/rings.jpg');
-      const ringGeo = new THREE.RingGeometry(2.5, 4.5, 256);
-      const ringMat = new THREE.MeshBasicMaterial({
+      // 5b. Кільце
+      const ringTex = loader.load('assets/textures/rings.jpg');
+      const ringMat = new THREE.MeshStandardMaterial({
         map: ringTex,
         side: THREE.DoubleSide,
         transparent: true,
         alphaTest: 0.5
       });
-      const ring = new THREE.Mesh(ringGeo, ringMat);
-      ring.rotation.x = THREE.MathUtils.degToRad(-90);
-      saturnGroup.add(ring);
+      // RingGeometry(innerRadius, outerRadius, thetaSegments)
+      const ringGeo = new THREE.RingGeometry(2.5, 4.5, 256);
+      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      ringMesh.rotation.x = -Math.PI / 2;
+      ringMesh.castShadow = true;
+      saturnGroup.add(ringMesh);
 
+      // 6. Підлаштування під розмір вікна
       window.addEventListener('resize', onWindowResize);
     }
 
@@ -87,13 +101,17 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
+    // 7. Анімація: обертання групи
     function animate() {
-      renderer.setAnimationLoop(() => {
-        saturnGroup.rotation.y += 0.002;
-        controls.update();
-        renderer.render(scene, camera);
-      });
+      renderer.setAnimationLoop(render);
     }
+
+    function render() {
+      // обертання навколо Y
+      saturnGroup.rotation.y += 0.0007; 
+      renderer.render(scene, camera);
+    }
+
   </script>
 </body>
 </html>
