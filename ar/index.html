@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8" />
-  <title>AR Сатурн — Без конфліктів</title>
+  <title>AR Сатурн — Виправлення</title>
   <style>
     html, body {
       margin: 0;
@@ -21,15 +21,22 @@
   <div id="ar-container"></div>
 
   <!-- ❗ ЛИШЕ ці два файли -->
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image.prod.js"></script> 
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script> 
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image.prod.js"></script> 
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-three.prod.js"></script> 
 
   <script>
+    // Приховуємо зайві логи про "kernel already registered"
+    const originalWarn = console.warn;
+    console.warn = function(msg) {
+      if (typeof msg === 'string' && msg.includes('kernel')) return;
+      originalWarn.apply(console, arguments);
+    };
+
     console.log("🔄 Старт додатка");
 
     window.addEventListener("load", () => {
       console.log("🟢 Вікно завантажилось");
-      
+
       const waitUntilReady = () => {
         if (window.MINDAR?.IMAGE?.MindARThree) {
           console.log("✅ MindARThree доступний");
@@ -55,9 +62,10 @@
         uiLoading: "yes"
       });
 
-      // Обробка помилок завантаження файлів
+      // Обробка помилок завантаження моделі
       mindarThree.onImageTargetsLoadError = (err) => {
         console.error("❌ Помилка завантаження targets.mind:", err);
+        alert("Помилка завантаження .mind файлу. Перевір шлях або з'єднання.");
       };
 
       const { renderer, scene, camera } = mindarThree;
@@ -72,12 +80,13 @@
           if (mindarThree.THREE && mindarThree.THREE.AmbientLight) {
             console.log("✅ THREE доступний після", attempts, "спроб");
             callback();
-          } else if (attempts < 30) {
+          } else if (attempts < 60) {
             attempts++;
             console.warn("⏳ Очікуємо THREE... спроба", attempts);
             setTimeout(tryCheck, 200);
           } else {
-            console.error("❌ THREE не став доступним через 6 секунд");
+            console.error("❌ THREE не став доступним через 12 секунд");
+            alert("Не вдалося ініціалізувати AR-рендеринг. Перезавантажте сторінку або перевір підключення.");
           }
         };
         tryCheck();
@@ -142,9 +151,11 @@
             });
           }).catch(err => {
             console.error("❌ Помилка запуску AR:", err);
+            alert("❌ Помилка запуску AR. Дивіться консоль для деталей.");
           });
         }).catch(err => {
           console.error("❌ Помилка завантаження текстур:", err);
+          alert("❌ Помилка завантаження текстур. Дивіться консоль для деталей.");
         });
       });
 
